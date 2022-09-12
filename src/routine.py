@@ -65,6 +65,13 @@ class Routine:
         if not self.forever:
             self.freq -= 1
 
+test_routine = Routine(
+    name="test", 
+    time_table=TimeTable(
+        points=[Point(1, time(1)), Point(2, time(2)), Point(3, time(3))]
+        )
+    )
+
 if __name__ == "__main__":
     print(__name__)
 
