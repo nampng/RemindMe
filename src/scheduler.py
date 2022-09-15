@@ -1,76 +1,75 @@
-from routine import Routine, test_routine
-from typing import Iterable, List
-from threading import Thread
+from datetime import date
+from routine import Routine
+from threading import Thread, ThreadError
 from time import sleep
-from collections import deque
-import bisect
-from datetime import datetime, time
 
-class RoutineQueue(deque):
+class Scheduler():
     """
-    RoutineQueue is a deque that's been extended a bit to handle sorting and inserting the routines.
-    Use insert_queue() in order to insert into the RoutineQueue. This will ensure that the queue remains sorted.
+    Scheduler does two things:
+    Manages the time table:
+
+    Manages starting / stopping routines:
+
     """
-    def __init__(self, iter: Iterable = None):
-        super().__init__(iter)
+    def __init__(self, time_table: dict = {}) -> None:
+        self.time_table = time_table
+        self._start()
 
-    # Example of sorting deques with datetime.
-    # https://stackoverflow.com/questions/19795642/how-to-sort-class-on-datetime-sort-collections-deque
-    # Probably won't need to use this? But I think it would be handy to have around.
-    def sort(self):
-        items = [self.pop() for _ in range(len(self))]
-        items.sort()
-        self.extend(items)
+    @classmethod
+    def from_routine_list(cls, routines) -> "Scheduler":
+        time_table = {}
 
-    def insert_queue(self, routine):
-        # This is with the assumption that the deque is already sorted.
-        routines = [routine for routine in self]
-        idx = bisect.bisect(routines, routine)
-        self.insert(idx, routine)
+        for routine in routines:
+            if routine.day not in time_table:
+                time_table[routine.day] = {}
 
-class Scheduler:
-    """
-    Scheduler will run threads to check the queue and execute tasks.
-    Scheduler will also manage the state of the routines and provides functions to add, delete, or edit routines.
-    """
-    def __init__(self, routine_list = List[Routine]):
-        self.routine_queue = RoutineQueue()
-        self.routines = {routine.name: routine for routine in routine_list}
+            time_table[routine.day][routine.name] = routine
 
-    def _check_routine_queue(self):
+        return cls(time_table=time_table)
+
+    def add(self, routine: Routine):
+        if self.time_table[routine.day][routine.name]:
+            print("Routine already exists.")
+            return
+
+        if routine.day not in self.time_table:
+            self.time_table[routine.day] = set()
+
+        self.time_table[routine.day][routine.name] = routine
+
+    def update(self, routine: Routine):
+        self.time_table[routine.day][routine.name].stop()
+        self.time_table[routine.day][routine.name] = routine
+
+    def remove(self, routine: Routine):
+        try:
+            self.time_table[routine.day][routine.name].stop()
+            del self.time_table[routine.day][routine.name]
+        except KeyError:
+            print("Routine doesn't exist.")
+        except ThreadError:
+            print("Thread does not exist or is not alive.")
+
+    def _start(self):
+        """
+        This starts the thread that will check routines and start / stop them when needed.
+        """
+        print("Starting scheduler...")
+        Thread(target=self._check_routines, name="Scheduler").start()
+
+    def _check_routines(self):
         while True:
-            print("Checking task queue...")
-            print(f"{self.routine_queue=}")
-            if self.routine_queue:
-                self.execute_routine(self.routine_queue.popleft())
-            sleep(5)
+            print("Checking for existing routines today...")
+            if self.time_table[date.weekday()]:
+                pass
+            else:
+                print("No routines today at this moment.")
 
-    def start_check_routine_queue(self):
-        thread = Thread(target=self._check_routine_queue, name="Check Task Queue")
-        thread.start()
-
-    def _execute_routine(self):
-        pass
-
-    def execute_routine(self, name):
-        thread = Thread(target=self._execute_routine, name=f"Task {name}", args=[name])
-        thread.start()
-
-    # We need to update the queue whenever we add, delete, or edit routines.
-
-    def enqueue_routines(self):
-
-        pass
-
-    def add_routine(self, routine):
-        """
-        Add routine will either extend an existing routine or add a new entry into the 'routines' dict.
-        """
-        pass
+            sleep(10)
 
 
 if __name__ == "__main__":
+    print("Scheduler.py")
 
-    s = Scheduler()
-
-    pass
+    from datetime import time
+    from routine import test_routine

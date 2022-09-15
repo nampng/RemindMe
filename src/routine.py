@@ -1,78 +1,61 @@
-from typing import List, Tuple
 from datetime import time, datetime
+from dataclasses import dataclass, field
+from threading import Thread, ThreadError
+from time import sleep
 
-class Point:
-    def __init__(self, day: int, time_period: time) -> None:
-        self.point = (day, time_period)
-
-    @classmethod
-    def from_str(cls, string: str):
-        pass
-
-    @classmethod
-    def from_datetime(cls, obj: datetime):
-        pass
-
-    def __iter__(self) -> Tuple[int, time]:
-        return iter(self.point)
-
-class TimeTable(dict):
-    def __init__(self, points: List[Point]) -> None:
-        self.time_table = self.create_time_table(points)
-        super().__init__(self.time_table)
-
-    @staticmethod
-    def create_time_table(points):
-        time_table = {}
-
-        for point in points:
-            day, time_period = point
-
-            if day not in time_table:
-                time_table[day] = set()
-
-            time_table[day].add(time_period)
-
-        return time_table
-
-
+@dataclass
 class Routine:
-    def __init__(self, name: str, time_table: TimeTable, freq: int = 1, forever: bool = False) -> None:
-        """
-        Args
-        name: Routine name
-        time_table: TimeTable obj representing points in time in a week
-        freq: Frequency in which the routine will trigger, will decrement every time routine runs (0 will never run)
-        forever: If forever == True then freq will never decrement
-        """
+    """
+    Routine class holds information about a particular routine as well as functions to
+    set the state of the routine.
+    """
+    name: str
+    day: int
+    target_time: time
+    description: str = field(repr=False, default="")
+    remind_me: bool = field(repr=False, default=False) 
+    force_stop: bool = field(repr=False, default=False) 
+    thread: Thread = field(repr=False, default=None) 
 
-        self.name = name
-        self.time_table = time_table
-        self.freq = freq
-        self.forever = forever
+    def __hash__(self):
+        return hash(repr(self))
+    
+    def start(self):
+        self.force_stop = False
+        self.remind_me = False
 
-    def add_time_table(self, new_time_table):
+        t = Thread(target=self._wait_for_day_time, name=f"{self.name}")
+        self.thread = t
+        self.thread.start()
+
+    def stop(self):
         """
-        Merges a new time table into the existing time table.
+        Force stops will be needed when a routine is being removed or updated.
+        This is because the thread will still run, even if the reference to it is removed.
         """
-        for key in new_time_table:
-            if (time_set := self.time_table.get(key)):
-                self.time_table[key] = time_set | new_time_table[key] # set merge
-            else:
-                self.time_table[key] = new_time_table[key]
+        if self.thread and self.thread.is_alive():
+            self.force_stop = True
+        else:
+            raise ThreadError
 
-    def decrement_freq(self):
-        if not self.forever:
-            self.freq -= 1
+    def _wait_for_day_time(self):
+        while True:
+            if self.force_stop:
+                print("Force stopping...")
+                self.force_stop = False
+                break
 
-test_routine = Routine(
-    name="test", 
-    time_table=TimeTable(
-        points=[Point(1, time(1)), Point(2, time(2)), Point(3, time(3))]
-        )
-    )
+            now = datetime.now()
+            if now.weekday() == self.day and now.time() >= self.target_time:
+                self.remind_me = True
+                break
+
+            print("Waiting for it...")
+            sleep(1)
+    
+test_routine = Routine(name="test", description="test", day=1, target_time=time(hour=1))
 
 if __name__ == "__main__":
-    print(__name__)
+    print("Routine.py")
 
-
+    

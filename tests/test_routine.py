@@ -1,5 +1,5 @@
 from datetime import time
-from ..src.routine import Point, TimeTable, Routine
+from ..src.routine import Routine
 
 def test_make_point():
     point = Point(day=0, time_period=time(hour=1))
