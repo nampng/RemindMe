@@ -1,6 +1,8 @@
 from datetime import time
 from ..src.routine import Routine
 
+# TODO: Fix these tests because they're all broken.
+
 def test_make_point():
     point = Point(day=0, time_period=time(hour=1))
     day, time_period = point
