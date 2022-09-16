@@ -1,1 +1,1 @@
-These files consist of code that I wrote after refactoring or changing my mind about something. I decided to just move the code somewhere else since I took some time writing it and might need it some time in the future.
+These files consist of code that I wrote before refactoring or changing my mind about something. I decided to just move the code somewhere else since I took some time writing it and might need it some time in the future.
