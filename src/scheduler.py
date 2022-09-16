@@ -1,4 +1,4 @@
-from datetime import date
+from datetime import date, datetime
 from routine import Routine
 from threading import Thread, ThreadError
 from time import sleep
@@ -6,6 +6,7 @@ from time import sleep
 class Scheduler():
     """
     Scheduler does two things:
+    
     Manages the time table:
 
     Manages starting / stopping routines:
@@ -13,7 +14,7 @@ class Scheduler():
     """
     def __init__(self, time_table: dict = {}) -> None:
         self.time_table = time_table
-        self._start()
+        # self._start()
 
     @classmethod
     def from_routine_list(cls, routines) -> "Scheduler":
@@ -41,10 +42,10 @@ class Scheduler():
         self.time_table[routine.day][routine.name].stop()
         self.time_table[routine.day][routine.name] = routine
 
-    def remove(self, routine: Routine):
+    def remove(self, day: int, name: str):
         try:
-            self.time_table[routine.day][routine.name].stop()
-            del self.time_table[routine.day][routine.name]
+            self.time_table[day][name].stop()
+            del self.time_table[day][name]
         except KeyError:
             print("Routine doesn't exist.")
         except ThreadError:
@@ -59,17 +60,29 @@ class Scheduler():
 
     def _check_routines(self):
         while True:
-            print("Checking for existing routines today...")
-            if self.time_table[date.weekday()]:
-                pass
-            else:
+            print("Checking...")
+            now = datetime.now()
+            if not self.time_table[now.weekday()]:
                 print("No routines today at this moment.")
+                return
 
-            sleep(10)
+            routine: Routine # Cool typing, wow. Wanted this here so that intellisense worked below.
+            for routine in self.time_table[now.weekday()].values():
+                if routine.thread and (routine.thread.is_alive() or routine.remind_me):
+                    continue
 
+                if now.time() <= routine.target_time:
+                    routine.start()
+
+            sleep(1)
+
+    def get_reminders(self):
+        now = datetime.now().weekday()
+        if now in self.time_table:
+            return [routine for routine in self.time_table[now].values() if routine.remind_me]
+
+    def clear_reminder(self, day: int, name: str):
+        self.time_table[day][name].remind_me = False
 
 if __name__ == "__main__":
     print("Scheduler.py")
-
-    from datetime import time
-    from routine import test_routine
