@@ -15,7 +15,7 @@ class Scheduler():
     """
     def __init__(self, time_table: dict = {}) -> None:
         self.time_table = time_table
-        # self._start()
+        self._start()
 
     @classmethod
     def from_routine_list(cls, routines) -> "Scheduler":
@@ -29,19 +29,20 @@ class Scheduler():
 
         return cls(time_table=time_table)
 
-    def add(self, routine: Routine) -> None:
+    def add(self, name, day, target_time, description) -> None:
         """
         Adds a new routine into the time table.
 
         You cannot add a routine that's already existing. 
         Use update() for that.
         """
-        if self.time_table[routine.day][routine.name]:
+        routine = Routine(name=name, day=day, target_time=target_time, description=description)
+        if day in self.time_table and name in self.time_table[day]:
             print("Routine already exists.")
             return
 
         if routine.day not in self.time_table:
-            self.time_table[routine.day] = set()
+            self.time_table[routine.day] = {}
 
         self.time_table[routine.day][routine.name] = routine
 
@@ -51,7 +52,12 @@ class Scheduler():
         Will stop the current routine from running, if it is, and replace the old routine with the new routine.
         """
         routine = Routine(name=name, day=day, target_time=target_time, description=description)
-        self.time_table[day][name].stop()
+
+        try:
+            self.time_table[day][name].stop()
+        except ThreadError:
+            print("Thread does not exist or is not alive.")
+
         self.time_table[day][name] = routine
 
     def remove(self, day: int, name: str) -> None:
@@ -79,19 +85,20 @@ class Scheduler():
 
     def _check_routines(self) -> None:
         while True:
-            print("Checking...")
             now = datetime.now()
-            if not self.time_table[now.weekday()]:
+
+            print(f"Current time is {now.time()}. Checking for routines...")
+
+            if now.weekday() not in self.time_table:
                 print("No routines today at this moment.")
-                return
+            else:
+                routine: Routine # Cool typing, wow. Wanted this here so that intellisense worked below.
+                for routine in self.time_table[now.weekday()].values():
+                    if routine.check_thread() or routine.has_reminder():
+                        continue
 
-            routine: Routine # Cool typing, wow. Wanted this here so that intellisense worked below.
-            for routine in self.time_table[now.weekday()].values():
-                if routine.check_thread() or routine.has_reminder():
-                    continue
-
-                if now.time() <= routine.target_time:
-                    routine.start()
+                    if now.time() <= routine.target_time:
+                        routine.start()
 
             sleep(1)
 

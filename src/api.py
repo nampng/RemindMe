@@ -8,11 +8,11 @@ import json
 class RoutineData(BaseModel):
     name: str
     day: int
-    target_time: time | None
+    target_time: str | None
     description: str = ""
 
     def __iter__(self):
-        return (self.name, self.day, self.target_time, self.description)
+        return iter((self.name, self.day, self.target_time, self.description))
 
 class Response(BaseModel):
     msg: str
@@ -40,17 +40,17 @@ def root() -> Response:
     This returns a list of routines that have remind_me == True
     """
     reminders = scheduler.get_reminders()
-    return Response(msg=f"{len(reminders)} reminders retrieved.", data=json.dumps(reminders))
+    return Response(msg=f"{len(reminders) if reminders else 0} reminders retrieved.", data=json.dumps(reminders))
 
 @app.post("/add")
 def add_routine(data: RoutineData) -> Response:
     name, day, target_time, description = data
-    scheduler.add(Routine(
+    scheduler.add(
         name=name, 
         day=day, 
         target_time=time.fromisoformat(target_time), 
         description=description
-        ))
+        )
     return Response(msg=f"Routine '{name}' added.")
 
 @app.post("/remove")
@@ -69,6 +69,7 @@ def update_routine(data: RoutineData) -> Response:
         description=description)
     return Response(msg=f"Routine '{name}' updated.")
 
+@app.post("/clear")
 def clear_reminder(data: RoutineData) -> Response:
     name, day, *_ = data
     scheduler.clear_reminder(name=name, day=day)

@@ -39,7 +39,7 @@ class Routine:
         Force stops will be needed when a routine is being removed or updated.
         This is because the thread will still run even if the reference to it is removed.
         """
-        if self._thread and self._thread.is_alive():
+        if self.check_thread():
             self._force_stop = True
         else:
             raise ThreadError
