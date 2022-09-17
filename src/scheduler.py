@@ -87,7 +87,7 @@ class Scheduler():
         while True:
             now = datetime.now()
 
-            print(f"Current time is {now.time()}. Checking for routines...")
+            print(f"Current time is {now.time()}. Checking routines...")
 
             if now.weekday() not in self.time_table:
                 print("No routines today at this moment.")
