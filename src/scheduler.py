@@ -6,12 +6,22 @@ from time import sleep
 
 class Scheduler():
     """
-    Scheduler does two things:
+    Scheduler mainly does two things:
     
     Manages the time table:
+    
+    The time table is a dictionary that looks like this:
+    {day: {name: routine}} where day is an int representing the day of the week, 
+    name is a str that identifies the routine, and routine is a Routine object.
 
-    Manages starting / stopping routines:
+    The scheduler can add, delete, and update keys/values in the time table.
 
+    Checks routines:
+    
+    The scheduler will start a thread which runs the function _check_routines(). 
+    This function checks if there are any existing routines today 
+    and will run the routines if reminders for them haven't been triggered yet 
+    and the current time is before the routine's target time.
     """
     def __init__(self, time_table: dict = {}) -> None:
         self.time_table = time_table
@@ -19,6 +29,9 @@ class Scheduler():
 
     @classmethod
     def from_routine_list(cls, routines) -> "Scheduler":
+        """
+        In case we have a list of existing routines, we can create time table out of them with this class method.
+        """
         time_table = {}
 
         for routine in routines:
@@ -84,6 +97,9 @@ class Scheduler():
         Thread(target=self._check_routines, name="Scheduler").start()
 
     def _check_routines(self) -> None:
+        """
+        Checks if there are routines that need to be run every second.
+        """
         while True:
             now = datetime.now()
 
@@ -103,11 +119,17 @@ class Scheduler():
             sleep(1)
 
     def get_reminders(self) -> List[Tuple]:
+        """
+        Returns a list of tuples consisting of (routine.name, routine.description).
+        """
         now = datetime.now().weekday()
         if now in self.time_table:
             return [(routine.name, routine.description) for routine in self.time_table[now].values() if routine.has_reminder()]
 
     def clear_reminder(self, day: int, name: str) -> None:
+        """
+        Calls the clear_reminder() function for the desired routine.
+        """
         self.time_table[day][name].clear_reminder()
 
 if __name__ == "__main__":

@@ -69,29 +69,36 @@ class Routine:
             sleep(1)
     
     def clear_reminder(self):
+        """
+        Sets _remind_me to False which will exclude it from the reminder list given by Scheduler.
+        
+        Also sets _thread to None, since it won't be needed anymore.
+        """
         self._remind_me = False
 
+        try:
+            self.stop()
+        except ThreadError:
+            print("No thread to stop or already stopped.")
+
+        self._thread = None # Might as well clear the thread too if we're clearing the reminder. A new one will be created later.
+
     def has_reminder(self) -> bool:
+        """
+        Returns _remind_me. 
+        """
         return self._remind_me
 
     def check_thread(self) -> bool:
+        """
+        Returns True if the thread is not None and is alive.
+        
+        Returns False otherwise.
+        """
         return self._thread and self._thread.is_alive()
     
+# Use this for testing purposes.
 test_routine = Routine(name="test", description="test", day=1, target_time=time(hour=1))
 
 if __name__ == "__main__":
     print("Routine.py")
-    test_routine.start()
-
-    sleep(1)
-
-    print(test_routine.check_thread())
-
-    sleep(2)
-
-    test_routine.stop()
-
-    sleep(3)
-
-    print(test_routine.check_thread())
-    
