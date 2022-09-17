@@ -1,4 +1,5 @@
-from datetime import date, datetime
+from datetime import datetime
+from typing import List, Tuple
 from routine import Routine
 from threading import Thread, ThreadError
 from time import sleep
@@ -28,7 +29,13 @@ class Scheduler():
 
         return cls(time_table=time_table)
 
-    def add(self, routine: Routine):
+    def add(self, routine: Routine) -> None:
+        """
+        Adds a new routine into the time table.
+
+        You cannot add a routine that's already existing. 
+        Use update() for that.
+        """
         if self.time_table[routine.day][routine.name]:
             print("Routine already exists.")
             return
@@ -38,27 +45,39 @@ class Scheduler():
 
         self.time_table[routine.day][routine.name] = routine
 
-    def update(self, routine: Routine):
-        self.time_table[routine.day][routine.name].stop()
-        self.time_table[routine.day][routine.name] = routine
+    def update(self, name, day, target_time, description) -> None:
+        """
+        Updates an existing routine. 
+        Will stop the current routine from running, if it is, and replace the old routine with the new routine.
+        """
+        routine = Routine(name=name, day=day, target_time=target_time, description=description)
+        self.time_table[day][name].stop()
+        self.time_table[day][name] = routine
 
-    def remove(self, day: int, name: str):
+    def remove(self, day: int, name: str) -> None:
+        """
+        Removes a routine from the time table.
+
+        Will attempt to stop the routine first, then it will delete the key to the routine in the time table.
+        """
         try:
-            self.time_table[day][name].stop()
+            try:
+                self.time_table[day][name].stop()
+            except ThreadError:
+                print("Thread does not exist or is not alive.")
+
             del self.time_table[day][name]
         except KeyError:
             print("Routine doesn't exist.")
-        except ThreadError:
-            print("Thread does not exist or is not alive.")
 
-    def _start(self):
+    def _start(self) -> None:
         """
         This starts the thread that will check routines and start / stop them when needed.
         """
         print("Starting scheduler...")
         Thread(target=self._check_routines, name="Scheduler").start()
 
-    def _check_routines(self):
+    def _check_routines(self) -> None:
         while True:
             print("Checking...")
             now = datetime.now()
@@ -68,7 +87,7 @@ class Scheduler():
 
             routine: Routine # Cool typing, wow. Wanted this here so that intellisense worked below.
             for routine in self.time_table[now.weekday()].values():
-                if routine.thread and (routine.thread.is_alive() or routine.remind_me):
+                if routine.check_thread() or routine.has_reminder():
                     continue
 
                 if now.time() <= routine.target_time:
@@ -76,13 +95,13 @@ class Scheduler():
 
             sleep(1)
 
-    def get_reminders(self):
+    def get_reminders(self) -> List[Tuple]:
         now = datetime.now().weekday()
         if now in self.time_table:
-            return [routine for routine in self.time_table[now].values() if routine.remind_me]
+            return [(routine.name, routine.description) for routine in self.time_table[now].values() if routine.has_reminder()]
 
-    def clear_reminder(self, day: int, name: str):
-        self.time_table[day][name].remind_me = False
+    def clear_reminder(self, day: int, name: str) -> None:
+        self.time_table[day][name].clear_reminder()
 
 if __name__ == "__main__":
     print("Scheduler.py")
